@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "WITNS")(type "KiCad")(uri "/home/laurentf/Documents/witns/eurorack/witns_wvtbl/witns_kicad_lib/footprints/WITNS.pretty")(options "")(descr ""))
+)
