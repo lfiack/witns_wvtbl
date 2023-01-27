@@ -1,8 +1,8 @@
 {
   "board": {
-    "active_layer": 0,
+    "active_layer": 2,
     "active_layer_preset": "",
-    "auto_track_width": true,
+    "auto_track_width": false,
     "hidden_nets": [],
     "high_contrast_mode": 0,
     "net_color_mode": 1,
@@ -62,11 +62,11 @@
       35,
       36
     ],
-    "visible_layers": "ffcffff_ffffffff",
+    "visible_layers": "ffcff7d_7ffffff9",
     "zone_display_mode": 0
   },
   "meta": {
-    "filename": "wvtbl_main_board.kicad_prl",
+    "filename": "witns_processing_board.kicad_prl",
     "version": 3
   },
   "project": {
