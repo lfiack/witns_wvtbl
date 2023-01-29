@@ -376,6 +376,9 @@
   (gr_arc (start 56 96) (mid 57.09623 97.042262) (end 57.5 98.5) (layer "F.SilkS") (width 0.6) (tstamp 230f837b-85db-4920-9fa5-3ecf48b296a1))
   (gr_line (start 42.5 109) (end 42.5 78.5) (layer "F.SilkS") (width 0.6) (tstamp a2915cdf-1984-46ec-a144-0b98d9e458ea))
   (gr_line (start 57.5 98.5) (end 57.5 109) (layer "F.SilkS") (width 0.6) (tstamp d8464c0e-eee2-425c-b0bb-cc730fa9258c))
+  (gr_text "JLCJLCJLCJLC" (at 50 45) (layer "B.SilkS") (tstamp f88a4307-9ff9-4e85-9f38-fb523401cc5a)
+    (effects (font (size 1 1) (thickness 0.15)) (justify mirror))
+  )
 
   (zone (net 1) (net_name "GND") (layer "F.Cu") (tstamp 2d935872-5211-4ee5-bc06-9c68b1b094d7) (hatch edge 0.508)
     (connect_pads yes (clearance 0))

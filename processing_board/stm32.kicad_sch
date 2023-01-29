@@ -803,7 +803,6 @@
     )
   )
 
-
   (junction (at 177.8 86.36) (diameter 0) (color 0 0 0 0)
     (uuid 0427635b-1955-48c3-ade5-4d238c7370be)
   )
@@ -1082,6 +1081,11 @@
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid 6a5fe137-b64a-42aa-b6d1-63b58a37b1c4)
   )
+  (polyline (pts (xy 247.65 97.79) (xy 250.19 97.79))
+    (stroke (width 0) (type default) (color 0 0 0 0))
+    (uuid 6b6d5d14-9cc1-438d-8c41-96387ca2ac07)
+  )
+
   (wire (pts (xy 218.44 110.49) (xy 218.44 109.22))
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid 6d0429c6-6fbc-49ad-adfb-8ab42b6b812f)
@@ -1238,6 +1242,15 @@
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid db7e5fe6-315c-4c46-b8b7-ecd0bf8a6e20)
   )
+  (polyline (pts (xy 247.65 92.71) (xy 250.19 92.71))
+    (stroke (width 0) (type default) (color 0 0 0 0))
+    (uuid de2493a9-acd8-49b4-a0fd-dcf6899b18a7)
+  )
+  (polyline (pts (xy 250.19 92.71) (xy 250.19 97.79))
+    (stroke (width 0) (type default) (color 0 0 0 0))
+    (uuid e20b5807-6fd3-49f8-9f02-9a1d7f91a47d)
+  )
+
   (wire (pts (xy 233.68 34.29) (xy 233.68 35.56))
     (stroke (width 0) (type default) (color 0 0 0 0))
     (uuid e21bea03-a8a7-4a86-b8f7-30164ff1fcd5)
@@ -1283,6 +1296,10 @@
     (uuid ff8e3b47-7523-42f3-9701-0d16be044dd2)
   )
 
+  (text "5V tolerant" (at 251.46 93.98 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid 3e665dac-119b-4850-83c1-3061271eb896)
+  )
   (text "Bypass capacitors\n100nF as close to STM32 VDD as possible\n4.7uF just next to the 100nF"
     (at 209.55 54.61 180)
     (effects (font (size 1.27 1.27)) (justify right bottom))
