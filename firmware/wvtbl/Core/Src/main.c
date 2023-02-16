@@ -95,12 +95,23 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  // We want to be able to calibrate the v/oct input
+  // If encoder is pressed, enter calibration mode
+  // Blink one color (eg. blue) while calibrating, say 1V (C2)
+  // Waits second encoder press
+  // We might light green LED for 1 or 2 seconds to send feedback to the user
+  // Blink another color (eg. red) while calibrating, say 3V (C4)
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    // If the interrupt flag is available
+    // Get ADC values from params (pots) and inputs (Audio/CV) <- maybe in interruption
+    // dsp_process() : reads params and inputs, generates outputs and lights
+    // Display lights and sends outputs to DAC
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
