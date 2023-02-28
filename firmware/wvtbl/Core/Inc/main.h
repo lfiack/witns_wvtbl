@@ -67,14 +67,14 @@ void Error_Handler(void);
 #define POT_4_GPIO_Port GPIOA
 #define DAC_Pin GPIO_PIN_4
 #define DAC_GPIO_Port GPIOA
-#define CV1_Pin GPIO_PIN_5
-#define CV1_GPIO_Port GPIOA
+#define CV4_Pin GPIO_PIN_5
+#define CV4_GPIO_Port GPIOA
 #define CV2_Pin GPIO_PIN_6
 #define CV2_GPIO_Port GPIOA
 #define CV3_Pin GPIO_PIN_7
 #define CV3_GPIO_Port GPIOA
-#define CV4_Pin GPIO_PIN_0
-#define CV4_GPIO_Port GPIOB
+#define CV1_Pin GPIO_PIN_0
+#define CV1_GPIO_Port GPIOB
 #define LED_BLUE_Pin GPIO_PIN_8
 #define LED_BLUE_GPIO_Port GPIOA
 #define LED_GREEN_Pin GPIO_PIN_9
@@ -87,10 +87,10 @@ void Error_Handler(void);
 #define ENCODER_A_GPIO_Port GPIOA
 #define ENCODER_SWITCH_Pin GPIO_PIN_15
 #define ENCODER_SWITCH_GPIO_Port GPIOA
-#define GPIO2_Pin GPIO_PIN_4
-#define GPIO2_GPIO_Port GPIOB
-#define GPIO1_Pin GPIO_PIN_5
-#define GPIO1_GPIO_Port GPIOB
+#define LED1_Pin GPIO_PIN_4
+#define LED1_GPIO_Port GPIOB
+#define LED2_Pin GPIO_PIN_5
+#define LED2_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
