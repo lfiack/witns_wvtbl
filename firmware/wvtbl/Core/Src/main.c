@@ -27,16 +27,32 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef enum adc_index_enum
+{
+    X_PARAM_INDEX, 
+    Y_PARAM_INDEX, 
+    X_ATTV_INDEX,
+    UNKNOWN_3,
+    Y_ATTV_INDEX,
+    UNKNOWN_5,
+    UNKNOWN_6,
+    UNKNOWN_7,
+    ADC_BUFFER_LENGTH 
+} adc_index_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define TIM_CHANNEL_BLUE TIM_CHANNEL_1
+#define TIM_CHANNEL_GREEN TIM_CHANNEL_2
+#define TIM_CHANNEL_RED TIM_CHANNEL_3
+
+#define ADC_BUFFER_LENGTH_WORDS (ADC_BUFFER_LENGTH/2)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,6 +64,16 @@
 
 /* USER CODE BEGIN PV */
 
+
+static int32_t counter = 0;
+static int32_t counter_SW = 0;
+
+static int32_t old_counter = 0;
+static int32_t old_counter_SW = 0;
+
+static uint16_t adc_buffer[ADC_BUFFER_LENGTH] = {0};
+static uint16_t potentiometers[4] = {0};
+static uint16_t old_potentiometers[4] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,7 +84,156 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int _write(int file, char *ptr, int len)
+{
+	(void) file;
 
+	HAL_UART_Transmit(&huart1, (uint8_t *)ptr, (uint16_t) len, HAL_MAX_DELAY);
+
+	return len;
+}
+
+void blink_led(void)
+{
+	static int iterator = 0;
+
+	int red;
+	int green;
+	int blue;
+
+	if (iterator < 255)
+	{
+		int tmp = iterator;
+		red = 255 - tmp;
+		green = tmp;
+		blue = 0;
+	}
+	else if (iterator < 511)
+	{
+		int tmp = iterator - 255;
+		red = 0;
+		green = 255 - tmp;
+		blue = tmp;
+	}
+	else
+	{
+		int tmp = iterator - 511;
+		red = tmp;
+		green = 0;
+		blue = 255 - tmp;
+	}
+
+	if (iterator == 767)
+	{
+		iterator = 0;
+	}
+	else
+	{
+		iterator++;
+	}
+
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_RED, 255-red);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_GREEN, 255-green);
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_BLUE, 255-blue);
+}
+
+void read_encoder(void)
+{
+	static GPIO_PinState state_A = GPIO_PIN_SET;
+
+	switch (state_A)
+	{
+	case GPIO_PIN_SET:
+		if (HAL_GPIO_ReadPin(ENCODER_A_GPIO_Port, ENCODER_A_Pin) == GPIO_PIN_RESET)
+		{
+			state_A = GPIO_PIN_RESET;
+			if (HAL_GPIO_ReadPin(ENCODER_B_GPIO_Port, ENCODER_B_Pin) == GPIO_PIN_SET)
+			{
+				counter++;
+			}
+			else
+			{
+				counter--;
+			}
+		}
+
+		break;
+	case GPIO_PIN_RESET:
+		if (HAL_GPIO_ReadPin(ENCODER_A_GPIO_Port, ENCODER_A_Pin) == GPIO_PIN_SET)
+		{
+			state_A = GPIO_PIN_SET;
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void read_switch(void)
+{
+	static uint8_t state_SW = 0;
+
+	if (state_SW == 0)
+	{
+		if (HAL_GPIO_ReadPin(ENCODER_SWITCH_GPIO_Port, ENCODER_SWITCH_Pin) == GPIO_PIN_SET)
+		{
+			counter_SW++;
+
+      counter = 0; // Reset the encoder counter
+
+			state_SW = 1;
+		}
+	}
+	else if (state_SW == 1)
+	{
+		if (HAL_GPIO_ReadPin(ENCODER_SWITCH_GPIO_Port, ENCODER_SWITCH_Pin) == GPIO_PIN_RESET)
+		{
+			state_SW = 0;
+		}
+	}
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (TIM7 == htim->Instance)
+	{
+		// blink_led();
+		read_encoder();
+		read_switch();
+	}
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+  if (ADC1 == hadc->Instance)
+  {
+    HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_SET);
+
+    if (HAL_OK != HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_BUFFER_LENGTH_WORDS)) // Length = 4(channels ADC1) * 4(bytes) = 16?
+    {
+      Error_Handler();
+    }
+
+    potentiometers[0] = 4095 - adc_buffer[X_PARAM_INDEX];
+    potentiometers[1] = 4095 - adc_buffer[Y_PARAM_INDEX];
+    potentiometers[2] = 4095 - adc_buffer[X_ATTV_INDEX];
+    potentiometers[3] = 4095 - adc_buffer[Y_ATTV_INDEX];
+
+    uint16_t red = counter;
+    if (counter > 255) red = 255;
+    else if (counter < 0) red = 0;
+    
+    uint16_t green = potentiometers[0] >> 4;
+    uint16_t blue = potentiometers[1] >> 4;
+
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_RED, 256-red);
+	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_GREEN, 256-green);
+	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_BLUE, 256-blue);
+
+    HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_RESET);
+  }
+
+}
 /* USER CODE END 0 */
 
 /**
@@ -96,11 +271,27 @@ int main(void)
   MX_TIM1_Init();
   MX_USART1_UART_Init();
   MX_TIM6_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
+  printf("===== WVTBL =====\r\n");
 
-  // HAL_OK == HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED)
-  // HAL_OK == HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED)
-  // HAL_OK == HAL_ADCEx_MultiModeStart_DMA(&hadc1, uint32_t *pData, uint32_t Length) // Length = 4(channels ADC1) * 4(bytes) = 16?
+  if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
+  {
+    Error_Handler();
+  }
+  if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED))
+  {
+    Error_Handler();
+  }
+
+  if (HAL_OK != HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_BUFFER_LENGTH_WORDS)) // Length = 4(channels ADC1) * 4(bytes) = 16?
+  {
+    Error_Handler();
+  }
+  if (HAL_OK != HAL_TIM_Base_Start(&htim6))
+  {
+    Error_Handler();
+  }
 
   // We want to be able to calibrate the v/oct input
   // If encoder is pressed, enter calibration mode
@@ -113,8 +304,37 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_RED);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_GREEN);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_BLUE);
+
+	HAL_TIM_Base_Start_IT(&htim7);
+
   while (1)
   {
+    if (counter != old_counter)
+		{
+			old_counter = counter;
+			printf("A=%ld\r\n", counter);
+		}
+
+		if (counter_SW != old_counter_SW)
+		{
+			old_counter_SW = counter_SW;
+			printf("SW=%ld\r\n", counter_SW);
+		}
+
+    for (int it = 0 ; it < 4 ; it++)
+    {
+      int diff = potentiometers[it] - old_potentiometers[it];
+      if ((diff > 10) || (diff < -10))
+      {
+        old_potentiometers[it] = potentiometers[it];
+
+        printf("Pot[%d] = %u\r\n", it, potentiometers[it]);
+      }
+    }
     // If the interrupt flag is available
     // Get ADC values from params (pots) and inputs (Audio/CV) <- maybe in interruption
     // dsp_process() : reads params and inputs, generates outputs and lights
@@ -184,6 +404,9 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+
+  HAL_GPIO_WritePin(LED_ERROR_GPIO_Port, LED_ERROR_Pin, GPIO_PIN_SET);
+
   while (1)
   {
   }

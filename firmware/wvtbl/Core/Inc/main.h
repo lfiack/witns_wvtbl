@@ -87,10 +87,10 @@ void Error_Handler(void);
 #define ENCODER_A_GPIO_Port GPIOA
 #define ENCODER_SWITCH_Pin GPIO_PIN_15
 #define ENCODER_SWITCH_GPIO_Port GPIOA
-#define LED1_Pin GPIO_PIN_4
-#define LED1_GPIO_Port GPIOB
-#define LED2_Pin GPIO_PIN_5
-#define LED2_GPIO_Port GPIOB
+#define LED_ERROR_Pin GPIO_PIN_4
+#define LED_ERROR_GPIO_Port GPIOB
+#define LED_DEBUG_Pin GPIO_PIN_5
+#define LED_DEBUG_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
