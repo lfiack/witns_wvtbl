@@ -30,6 +30,7 @@
 #include <stdio.h>
 
 #include "drv/led_pwm.h"
+#include "drv/encoder.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -80,7 +81,14 @@ h_led_pwm_t h_led_blue = {
   .timer_channel = TIM_CHANNEL_BLUE
 };
 
-static int32_t counter = 0;
+h_encoder_t h_encoder = {
+  .A_GPIOx = ENCODER_A_GPIO_Port,
+  .A_GPIO_pin = ENCODER_A_Pin,
+  .B_GPIOx = ENCODER_B_GPIO_Port,
+  .B_GPIO_pin = ENCODER_B_Pin
+};
+
+// static int32_t counter = 0;
 static int32_t counter_SW = 0;
 
 static int32_t old_counter = 0;
@@ -108,37 +116,37 @@ int _write(int file, char *ptr, int len)
 	return len;
 }
 
-void read_encoder(void)
-{
-	static GPIO_PinState state_A = GPIO_PIN_SET;
+// void read_encoder(void)
+// {
+// 	static GPIO_PinState state_A = GPIO_PIN_SET;
 
-	switch (state_A)
-	{
-	case GPIO_PIN_SET:
-		if (HAL_GPIO_ReadPin(ENCODER_A_GPIO_Port, ENCODER_A_Pin) == GPIO_PIN_RESET)
-		{
-			state_A = GPIO_PIN_RESET;
-			if (HAL_GPIO_ReadPin(ENCODER_B_GPIO_Port, ENCODER_B_Pin) == GPIO_PIN_SET)
-			{
-				counter++;
-			}
-			else
-			{
-				counter--;
-			}
-		}
+// 	switch (state_A)
+// 	{
+// 	case GPIO_PIN_SET:
+// 		if (HAL_GPIO_ReadPin(ENCODER_A_GPIO_Port, ENCODER_A_Pin) == GPIO_PIN_RESET)
+// 		{
+// 			state_A = GPIO_PIN_RESET;
+// 			if (HAL_GPIO_ReadPin(ENCODER_B_GPIO_Port, ENCODER_B_Pin) == GPIO_PIN_SET)
+// 			{
+// 				counter++;
+// 			}
+// 			else
+// 			{
+// 				counter--;
+// 			}
+// 		}
 
-		break;
-	case GPIO_PIN_RESET:
-		if (HAL_GPIO_ReadPin(ENCODER_A_GPIO_Port, ENCODER_A_Pin) == GPIO_PIN_SET)
-		{
-			state_A = GPIO_PIN_SET;
-		}
-		break;
-	default:
-		break;
-	}
-}
+// 		break;
+// 	case GPIO_PIN_RESET:
+// 		if (HAL_GPIO_ReadPin(ENCODER_A_GPIO_Port, ENCODER_A_Pin) == GPIO_PIN_SET)
+// 		{
+// 			state_A = GPIO_PIN_SET;
+// 		}
+// 		break;
+// 	default:
+// 		break;
+// 	}
+// }
 
 void read_switch(void)
 {
@@ -150,7 +158,7 @@ void read_switch(void)
 		{
 			counter_SW++;
 
-      counter = 0; // Reset the encoder counter
+//      counter = 0; // Reset the encoder counter
 
 			state_SW = 1;
 		}
@@ -168,7 +176,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (TIM7 == htim->Instance)
 	{
-		read_encoder();
+    encoder_process(&h_encoder);
+		// read_encoder();
 		read_switch();
 	}
 }
@@ -184,6 +193,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     potentiometers[2] = 4095 - adc_buffer[X_ATTV_INDEX];
     potentiometers[3] = 4095 - adc_buffer[Y_ATTV_INDEX];
 
+    int32_t counter = encoder_value(&h_encoder);
     uint16_t red = counter;
     if (counter > 255) red = 255;
     else if (counter < 0) red = 0;
@@ -275,18 +285,14 @@ int main(void)
   led_pwm_init(&h_led_red);
   led_pwm_init(&h_led_green);
   led_pwm_init(&h_led_blue);
+
+  encoder_init(&h_encoder);
   
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
 	HAL_TIM_Base_Start_IT(&htim7);
 
   while (1)
   {
-    if (counter != old_counter)
-		{
-			old_counter = counter;
-			printf("A=%ld\r\n", counter);
-		}
-
 		if (counter_SW != old_counter_SW)
 		{
 			old_counter_SW = counter_SW;
