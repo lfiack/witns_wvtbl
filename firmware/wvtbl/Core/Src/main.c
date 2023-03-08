@@ -28,6 +28,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+
+#include "drv/led_pwm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,11 +39,11 @@ typedef enum adc_index_enum
     X_PARAM_INDEX, 
     Y_PARAM_INDEX, 
     X_ATTV_INDEX,
-    UNKNOWN_3,
+    X_INPUT_INDEX,
     Y_ATTV_INDEX,
-    UNKNOWN_5,
-    UNKNOWN_6,
-    UNKNOWN_7,
+    Y_INPUT_INDEX,
+    PITCH_INPUT_INDEX,
+    UNUSED_INDEX,
     ADC_BUFFER_LENGTH 
 } adc_index_t;
 /* USER CODE END PTD */
@@ -63,7 +65,20 @@ typedef enum adc_index_enum
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+h_led_pwm_t h_led_red = {
+  .timer_handle = &htim1,
+  .timer_channel = TIM_CHANNEL_RED
+};
 
+h_led_pwm_t h_led_green = {
+  .timer_handle = &htim1,
+  .timer_channel = TIM_CHANNEL_GREEN
+};
+
+h_led_pwm_t h_led_blue = {
+  .timer_handle = &htim1,
+  .timer_channel = TIM_CHANNEL_BLUE
+};
 
 static int32_t counter = 0;
 static int32_t counter_SW = 0;
@@ -91,50 +106,6 @@ int _write(int file, char *ptr, int len)
 	HAL_UART_Transmit(&huart1, (uint8_t *)ptr, (uint16_t) len, HAL_MAX_DELAY);
 
 	return len;
-}
-
-void blink_led(void)
-{
-	static int iterator = 0;
-
-	int red;
-	int green;
-	int blue;
-
-	if (iterator < 255)
-	{
-		int tmp = iterator;
-		red = 255 - tmp;
-		green = tmp;
-		blue = 0;
-	}
-	else if (iterator < 511)
-	{
-		int tmp = iterator - 255;
-		red = 0;
-		green = 255 - tmp;
-		blue = tmp;
-	}
-	else
-	{
-		int tmp = iterator - 511;
-		red = tmp;
-		green = 0;
-		blue = 255 - tmp;
-	}
-
-	if (iterator == 767)
-	{
-		iterator = 0;
-	}
-	else
-	{
-		iterator++;
-	}
-
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_RED, 255-red);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_GREEN, 255-green);
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_BLUE, 255-blue);
 }
 
 void read_encoder(void)
@@ -197,7 +168,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (TIM7 == htim->Instance)
 	{
-		// blink_led();
 		read_encoder();
 		read_switch();
 	}
@@ -208,11 +178,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
   if (ADC1 == hadc->Instance)
   {
     HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_SET);
-
-    if (HAL_OK != HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_BUFFER_LENGTH_WORDS)) // Length = 4(channels ADC1) * 4(bytes) = 16?
-    {
-      Error_Handler();
-    }
 
     potentiometers[0] = 4095 - adc_buffer[X_PARAM_INDEX];
     potentiometers[1] = 4095 - adc_buffer[Y_PARAM_INDEX];
@@ -226,9 +191,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     uint16_t green = potentiometers[0] >> 4;
     uint16_t blue = potentiometers[1] >> 4;
 
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_RED, 256-red);
-	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_GREEN, 256-green);
-	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_BLUE, 256-blue);
+    led_pwm_set_brightness(&h_led_red, (float)(red)/255.f);
+    led_pwm_set_brightness(&h_led_green, (float)(green)/255.f);
+    led_pwm_set_brightness(&h_led_blue, (float)(blue)/255.f);
+
+    uint32_t dac = adc_buffer[PITCH_INPUT_INDEX];
+    HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac);
 
     HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_RESET);
   }
@@ -304,11 +272,11 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_RED);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_GREEN);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_BLUE);
-
+  led_pwm_init(&h_led_red);
+  led_pwm_init(&h_led_green);
+  led_pwm_init(&h_led_blue);
+  
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
 	HAL_TIM_Base_Start_IT(&htim7);
 
   while (1)
