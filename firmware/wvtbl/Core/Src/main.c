@@ -31,22 +31,23 @@
 
 #include "drv/led_pwm.h"
 #include "drv/encoder.h"
+#include "drv/analog.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum adc_index_enum
-{
-    X_PARAM_INDEX, 
-    Y_PARAM_INDEX, 
-    X_ATTV_INDEX,
-    X_INPUT_INDEX,
-    Y_ATTV_INDEX,
-    Y_INPUT_INDEX,
-    PITCH_INPUT_INDEX,
-    UNUSED_INDEX,
-    ADC_BUFFER_LENGTH 
-} adc_index_t;
+// typedef enum adc_index_enum
+// {
+//     X_PARAM_INDEX, 
+//     Y_PARAM_INDEX, 
+//     X_ATTV_INDEX,
+//     X_INPUT_INDEX,
+//     Y_ATTV_INDEX,
+//     Y_INPUT_INDEX,
+//     PITCH_INPUT_INDEX,
+//     UNUSED_INDEX,
+//     ADC_BUFFER_LENGTH 
+// } adc_index_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -55,7 +56,7 @@ typedef enum adc_index_enum
 #define TIM_CHANNEL_GREEN TIM_CHANNEL_2
 #define TIM_CHANNEL_RED TIM_CHANNEL_3
 
-#define ADC_BUFFER_LENGTH_WORDS (ADC_BUFFER_LENGTH/2)
+//#define ADC_BUFFER_LENGTH_WORDS (ADC_BUFFER_LENGTH/2)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,13 +89,19 @@ h_encoder_t h_encoder = {
   .B_GPIO_pin = ENCODER_B_Pin
 };
 
+h_analog_t h_analog = {
+  .adc_handles = {&hadc1, &hadc2},
+  .timer_handle = &htim6,
+  .dac_handle = &hdac1,
+  .dac_channel = DAC_CHANNEL_1
+};
+
 // static int32_t counter = 0;
 static int32_t counter_SW = 0;
 
-static int32_t old_counter = 0;
 static int32_t old_counter_SW = 0;
 
-static uint16_t adc_buffer[ADC_BUFFER_LENGTH] = {0};
+//static uint16_t adc_buffer[ADC_BUFFER_LENGTH] = {0};
 static uint16_t potentiometers[4] = {0};
 static uint16_t old_potentiometers[4] = {0};
 /* USER CODE END PV */
@@ -188,10 +195,10 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
   {
     HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_SET);
 
-    potentiometers[0] = 4095 - adc_buffer[X_PARAM_INDEX];
-    potentiometers[1] = 4095 - adc_buffer[Y_PARAM_INDEX];
-    potentiometers[2] = 4095 - adc_buffer[X_ATTV_INDEX];
-    potentiometers[3] = 4095 - adc_buffer[Y_ATTV_INDEX];
+    potentiometers[0] = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_X_PARAM_INDEX);
+    potentiometers[1] = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_Y_PARAM_INDEX);
+    potentiometers[2] = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_X_ATTV_INDEX);
+    potentiometers[3] = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_Y_ATTV_INDEX);
 
     int32_t counter = encoder_value(&h_encoder);
     uint16_t red = counter;
@@ -205,8 +212,10 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     led_pwm_set_brightness(&h_led_green, (float)(green)/255.f);
     led_pwm_set_brightness(&h_led_blue, (float)(blue)/255.f);
 
-    uint32_t dac = adc_buffer[PITCH_INPUT_INDEX];
-    HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac);
+    // uint32_t dac = adc_buffer[PITCH_INPUT_INDEX];
+    // HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac);
+    uint16_t dac = analog_get_adc(&h_analog, ANALOG_ADC_PITCH_INPUT_INDEX);
+    analog_set_dac(&h_analog, dac);
 
     HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_RESET);
   }
@@ -253,23 +262,23 @@ int main(void)
   /* USER CODE BEGIN 2 */
   printf("===== WVTBL =====\r\n");
 
-  if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
-  {
-    Error_Handler();
-  }
-  if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED))
-  {
-    Error_Handler();
-  }
+  // if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
+  // {
+  //   Error_Handler();
+  // }
+  // if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED))
+  // {
+  //   Error_Handler();
+  // }
 
-  if (HAL_OK != HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_BUFFER_LENGTH_WORDS)) // Length = 4(channels ADC1) * 4(bytes) = 16?
-  {
-    Error_Handler();
-  }
-  if (HAL_OK != HAL_TIM_Base_Start(&htim6))
-  {
-    Error_Handler();
-  }
+  // if (HAL_OK != HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_BUFFER_LENGTH_WORDS)) // Length = 4(channels ADC1) * 4(bytes) = 16?
+  // {
+  //   Error_Handler();
+  // }
+  // if (HAL_OK != HAL_TIM_Base_Start(&htim6))
+  // {
+  //   Error_Handler();
+  // }
 
   // We want to be able to calibrate the v/oct input
   // If encoder is pressed, enter calibration mode
@@ -287,6 +296,11 @@ int main(void)
   led_pwm_init(&h_led_blue);
 
   encoder_init(&h_encoder);
+
+  if (0 != analog_init(&h_analog))
+  {
+    Error_Handler();
+  }
   
   HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
 	HAL_TIM_Base_Start_IT(&htim7);

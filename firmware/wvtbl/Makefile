@@ -70,7 +70,8 @@ Core/Src/system_stm32g4xx.c \
 Core/Src/dma.c \
 dsp/dsp.c \
 drv/led_pwm.c \
-drv/encoder.c
+drv/encoder.c \
+drv/analog.c
 
 # ASM sources
 ASM_SOURCES =  \
