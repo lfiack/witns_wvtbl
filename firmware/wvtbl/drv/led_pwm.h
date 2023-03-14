@@ -17,7 +17,7 @@ typedef struct h_led_pwm_struct
 } h_led_pwm_t;
 
 // Starts the timer, put the brightness to minimum value
-void led_pwm_init(h_led_pwm_t * h_led_pwm);
+int8_t led_pwm_init(h_led_pwm_t * h_led_pwm);
 
 // brightness between 0 and 1
 void led_pwm_set_brightness(h_led_pwm_t * h_led_pwm, float brightness);
