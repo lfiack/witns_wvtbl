@@ -32,22 +32,13 @@
 #include "drv/led_pwm.h"
 #include "drv/encoder.h"
 #include "drv/analog.h"
+
+#include "dsp/dsp.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-// typedef enum adc_index_enum
-// {
-//     X_PARAM_INDEX, 
-//     Y_PARAM_INDEX, 
-//     X_ATTV_INDEX,
-//     X_INPUT_INDEX,
-//     Y_ATTV_INDEX,
-//     Y_INPUT_INDEX,
-//     PITCH_INPUT_INDEX,
-//     UNUSED_INDEX,
-//     ADC_BUFFER_LENGTH 
-// } adc_index_t;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -91,19 +82,16 @@ h_encoder_t h_encoder = {
 
 h_analog_t h_analog = {
   .adc_handles = {&hadc1, &hadc2},
-  .timer_handle = &htim6,
+  .adc_timer_handle = &htim6,
   .dac_handle = &hdac1,
+  .dac_timer_handle = &htim7,
   .dac_channel = DAC_CHANNEL_1
 };
 
-// static int32_t counter = 0;
-static int32_t counter_SW = 0;
+h_dsp_t h_dsp = {
+  .sample_frequency = 47995.48277809147f
+};
 
-static int32_t old_counter_SW = 0;
-
-//static uint16_t adc_buffer[ADC_BUFFER_LENGTH] = {0};
-static uint16_t potentiometers[4] = {0};
-static uint16_t old_potentiometers[4] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -123,38 +111,7 @@ int _write(int file, char *ptr, int len)
 	return len;
 }
 
-// void read_encoder(void)
-// {
-// 	static GPIO_PinState state_A = GPIO_PIN_SET;
-
-// 	switch (state_A)
-// 	{
-// 	case GPIO_PIN_SET:
-// 		if (HAL_GPIO_ReadPin(ENCODER_A_GPIO_Port, ENCODER_A_Pin) == GPIO_PIN_RESET)
-// 		{
-// 			state_A = GPIO_PIN_RESET;
-// 			if (HAL_GPIO_ReadPin(ENCODER_B_GPIO_Port, ENCODER_B_Pin) == GPIO_PIN_SET)
-// 			{
-// 				counter++;
-// 			}
-// 			else
-// 			{
-// 				counter--;
-// 			}
-// 		}
-
-// 		break;
-// 	case GPIO_PIN_RESET:
-// 		if (HAL_GPIO_ReadPin(ENCODER_A_GPIO_Port, ENCODER_A_Pin) == GPIO_PIN_SET)
-// 		{
-// 			state_A = GPIO_PIN_SET;
-// 		}
-// 		break;
-// 	default:
-// 		break;
-// 	}
-// }
-
+// TODO Should be placed in drv/something
 void read_switch(void)
 {
 	static uint8_t state_SW = 0;
@@ -163,9 +120,7 @@ void read_switch(void)
 	{
 		if (HAL_GPIO_ReadPin(ENCODER_SWITCH_GPIO_Port, ENCODER_SWITCH_Pin) == GPIO_PIN_SET)
 		{
-			counter_SW++;
-
-//      counter = 0; // Reset the encoder counter
+      encoder_reset(&h_encoder);
 
 			state_SW = 1;
 		}
@@ -179,48 +134,59 @@ void read_switch(void)
 	}
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	if (TIM7 == htim->Instance)
-	{
-    encoder_process(&h_encoder);
-		// read_encoder();
-		read_switch();
-	}
-}
-
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
   if (ADC1 == hadc->Instance)
   {
     HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_SET);
 
-    potentiometers[0] = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_X_PARAM_INDEX);
-    potentiometers[1] = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_Y_PARAM_INDEX);
-    potentiometers[2] = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_X_ATTV_INDEX);
-    potentiometers[3] = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_Y_ATTV_INDEX);
+    encoder_process(&h_encoder);
+		read_switch();
 
-    int32_t counter = encoder_value(&h_encoder);
-    uint16_t red = counter;
-    if (counter > 255) red = 255;
-    else if (counter < 0) red = 0;
-    
-    uint16_t green = potentiometers[0] >> 4;
-    uint16_t blue = potentiometers[1] >> 4;
+    uint16_t x_param = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_X_PARAM_INDEX);
+    uint16_t y_param = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_Y_PARAM_INDEX);
+    int32_t encoder = encoder_value(&h_encoder);
 
-    led_pwm_set_brightness(&h_led_red, (float)(red)/255.f);
-    led_pwm_set_brightness(&h_led_green, (float)(green)/255.f);
-    led_pwm_set_brightness(&h_led_blue, (float)(blue)/255.f);
+    h_dsp.params[PITCH_PARAM] = encoder;
 
-    // uint32_t dac = adc_buffer[PITCH_INPUT_INDEX];
-    // HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, dac);
-    uint16_t dac = analog_get_adc(&h_analog, ANALOG_ADC_PITCH_INPUT_INDEX);
-    analog_set_dac(&h_analog, dac);
+    h_dsp.params[X_PARAM] = x_param;
+    h_dsp.params[Y_PARAM] = x_param;
+    h_dsp.inputs[PITCH_INPUT] = 0;
+    h_dsp.inputs[X_INPUT] = 0;
+    h_dsp.inputs[Y_INPUT] = 0;
+
+    led_pwm_set_brightness(&h_led_red, x_param >> 4);
+    led_pwm_set_brightness(&h_led_green, encoder + 127);
+    led_pwm_set_brightness(&h_led_blue, y_param >> 4);
 
     HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_RESET);
   }
-
 }
+
+void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac)
+{
+  if (DAC1 == hdac->Instance)
+  {
+    HAL_GPIO_WritePin(LED_ERROR_GPIO_Port, LED_ERROR_Pin, GPIO_PIN_SET);
+
+    dsp_process(&h_dsp, h_analog.dac_buffer, DAC_BUFFER_SIZE/2);
+
+    HAL_GPIO_WritePin(LED_ERROR_GPIO_Port, LED_ERROR_Pin, GPIO_PIN_RESET);
+  }
+}
+
+void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac)
+{
+  if (DAC1 == hdac->Instance)
+  {
+    HAL_GPIO_WritePin(LED_ERROR_GPIO_Port, LED_ERROR_Pin, GPIO_PIN_SET);
+
+    dsp_process(&h_dsp, &h_analog.dac_buffer[DAC_BUFFER_SIZE/2], DAC_BUFFER_SIZE/2);
+
+    HAL_GPIO_WritePin(LED_ERROR_GPIO_Port, LED_ERROR_Pin, GPIO_PIN_RESET);
+  }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -261,25 +227,6 @@ int main(void)
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
   printf("===== WVTBL =====\r\n");
-
-  // if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED))
-  // {
-  //   Error_Handler();
-  // }
-  // if (HAL_OK != HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED))
-  // {
-  //   Error_Handler();
-  // }
-
-  // if (HAL_OK != HAL_ADCEx_MultiModeStart_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_BUFFER_LENGTH_WORDS)) // Length = 4(channels ADC1) * 4(bytes) = 16?
-  // {
-  //   Error_Handler();
-  // }
-  // if (HAL_OK != HAL_TIM_Base_Start(&htim6))
-  // {
-  //   Error_Handler();
-  // }
-
   // We want to be able to calibrate the v/oct input
   // If encoder is pressed, enter calibration mode
   // Blink one color (eg. blue) while calibrating, say 1V (C2)
@@ -292,6 +239,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   encoder_init(&h_encoder);
+  dsp_init(&h_dsp);
   
   if (0 != led_pwm_init(&h_led_red))
   {
@@ -310,12 +258,6 @@ int main(void)
   {
     Error_Handler();
   }
-  
-//  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
-	if (HAL_OK != HAL_TIM_Base_Start_IT(&htim7))
-  {
-    Error_Handler();
-  }
 
   while (1)
   {
@@ -328,6 +270,14 @@ int main(void)
       printf("Encoder = %ld\r\n", value);
     }
 #endif // DEBUG_ENCODER
+
+    printf("Still alive...\r\n");
+    HAL_Delay(1000);
+    // if (h_dsp.params[PITCH_PARAM] != pitch)
+    // {
+    //   pitch = h_dsp.params[PITCH_PARAM];
+    //   printf("Pitch = %d\r\n", (int)pitch);
+    // }
 
 		// if (counter_SW != old_counter_SW)
 		// {
@@ -345,10 +295,7 @@ int main(void)
     //     printf("Pot[%d] = %u\r\n", it, potentiometers[it]);
     //   }
     // }
-    // If the interrupt flag is available
-    // Get ADC values from params (pots) and inputs (Audio/CV) <- maybe in interruption
-    // dsp_process() : reads params and inputs, generates outputs and lights
-    // Display lights and sends outputs to DAC
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

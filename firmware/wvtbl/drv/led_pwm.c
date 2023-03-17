@@ -13,8 +13,8 @@ int8_t led_pwm_init(h_led_pwm_t * h_led_pwm)
 }
 
 // brightness between 0 and 1
-void led_pwm_set_brightness(h_led_pwm_t * h_led_pwm, float brightness)
+void led_pwm_set_brightness(h_led_pwm_t * h_led_pwm, uint8_t brightness)
 {
-    uint16_t bright = 256 - (uint16_t)(brightness * 255.f);
+    uint16_t bright = 256 - (uint16_t)(brightness);
     __HAL_TIM_SET_COMPARE(h_led_pwm->timer_handle, h_led_pwm->timer_channel, bright);
 }

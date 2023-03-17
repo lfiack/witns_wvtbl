@@ -15,12 +15,15 @@ int8_t analog_init(h_analog_t * h_analog)
         return -1;
     }
 
-    if (HAL_OK != HAL_DAC_Start(h_analog->dac_handle, h_analog->dac_channel))
+    //HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *)dac_buf, DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
+    HAL_DAC_Start_DMA(h_analog->dac_handle, h_analog->dac_channel, (uint32_t *)h_analog->dac_buffer, DAC_BUFFER_SIZE, DAC_ALIGN_12B_R);
+
+	if (HAL_OK != HAL_TIM_Base_Start(h_analog->dac_timer_handle))
     {
-        return -1;
+        Error_Handler();
     }
 
-    if (HAL_OK != HAL_TIM_Base_Start(h_analog->timer_handle))
+    if (HAL_OK != HAL_TIM_Base_Start(h_analog->adc_timer_handle))
     {
         return -1;
     }
@@ -34,8 +37,8 @@ uint16_t analog_get_adc(h_analog_t * h_analog, analog_adc_index_t index)
     // Nothing else to do, everything is done by DMA
 }
 
-void analog_set_dac(h_analog_t * h_analog, uint16_t value)
-{
-    h_analog->dac_value = value;
-    HAL_DAC_SetValue(h_analog->dac_handle, h_analog->dac_channel, DAC_ALIGN_12B_R, value);
-}
+// void analog_set_dac(h_analog_t * h_analog, uint16_t value)
+// {
+//     h_analog->dac_value = value;
+//     // HAL_DAC_SetValue(h_analog->dac_handle, h_analog->dac_channel, DAC_ALIGN_12B_R, value);
+// }

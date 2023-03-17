@@ -6,6 +6,11 @@ void encoder_init(h_encoder_t * h_encoder)
     h_encoder->value = 0;
 }
 
+void encoder_reset(h_encoder_t * h_encoder)
+{
+    h_encoder->value = 0;
+}
+
 void encoder_process(h_encoder_t * h_encoder)
 {
     h_encoder->state = h_encoder->state << 1;

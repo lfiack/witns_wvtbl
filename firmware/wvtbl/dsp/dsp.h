@@ -38,36 +38,15 @@ typedef enum dsp_input_id_enum
 } dsp_input_id_t;
 
 /**
- * @brief Enumeration for identifying different outputs.
- */
-typedef enum dsp_output_id_enum
-{
-    AUDIO_OUTPUT, /**< Identifier for the audio output. */
-    OUTPUTS_LEN /**< Length of the output array. */
-} dsp_output_id_t;
-
-/**
- * @brief Enumeration for identifying the encoder's LED.
- */
-typedef enum dsp_light_id_enum
-{
-    RED_LIGHT, /**< Identifier for the red LED. */
-    GREEN_LIGHT, /**< Identifier for the green LED. */
-    BLUE_LIGHT, /**< Identifier for the blue LED. */
-    LIGHTS_LEN /**< Length of the lights array. */
-} dsp_light_id_t;
-
-/**
  * @brief Structure for storing digital signal processing information.
  */
 typedef struct h_dsp_struct
 {
-    float params[PARAMS_LEN]; /**< Array for storing parameters. */
-    float inputs[INPUTS_LEN]; /**< Array for storing inputs. */
-    float outputs[OUTPUTS_LEN]; /**< Array for storing outputs. */
-    float lights[LIGHTS_LEN]; /**< Array for storing lights. */
+    int32_t params[PARAMS_LEN]; /**< Array for storing parameters. */
+    int32_t inputs[INPUTS_LEN]; /**< Array for storing inputs. */
 
     float sample_frequency; /**< The sample frequency of the digital signal. */
+    float frequency;
 
     float phase; /**< The phase of the digital signal. */
 } h_dsp_t;
@@ -82,6 +61,6 @@ void dsp_init(h_dsp_t * h_dsp);
  * @brief Processes the digital signal.
  * @param h_dsp Pointer to the DSP structure for processing the digital signal.
  */
-void dsp_process(h_dsp_t * h_dsp);
+void dsp_process(h_dsp_t * h_dsp, uint32_t * dac_buffer, int32_t dac_buffer_size);
 
 #endif // __DSP_H

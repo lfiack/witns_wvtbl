@@ -16,6 +16,7 @@ typedef struct h_encoder_struct
 } h_encoder_t;
 
 void encoder_init(h_encoder_t * h_encoder);
+void encoder_reset(h_encoder_t * h_encoder);
 void encoder_process(h_encoder_t * h_encoder);
 int32_t encoder_increment(h_encoder_t * h_encoder);
 int32_t encoder_value(h_encoder_t * h_encoder);
