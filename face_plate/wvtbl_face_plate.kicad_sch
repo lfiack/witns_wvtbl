@@ -212,7 +212,7 @@
     (property "Value" "Pitch" (id 1) (at 72.39 44.4499 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Footprint" "WITNS:PotentiometerHole_7.4mm_M7_Pad" (id 2) (at 69.85 44.45 0)
+    (property "Footprint" "WITNS:EncoderHole_9.4mm_M9_Pad" (id 2) (at 69.85 44.45 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 69.85 44.45 0)
@@ -442,7 +442,7 @@
       (reference "#PWR0103") (unit 1) (value "GND") (footprint "")
     )
     (path "/1627844d-d79a-4682-a0c6-a6ffcdb8ff06"
-      (reference "H101") (unit 1) (value "Pitch") (footprint "WITNS:PotentiometerHole_7.4mm_M7_Pad")
+      (reference "H101") (unit 1) (value "Pitch") (footprint "WITNS:EncoderHole_9.4mm_M9_Pad")
     )
     (path "/26c86062-2af5-48eb-9445-359a8c5d590b"
       (reference "H102") (unit 1) (value "V/Oct") (footprint "WITNS:Thonkiconn_6.4mm_M6_Pad")
