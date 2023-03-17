@@ -2,5 +2,4 @@
 Wavetable oscillator
 
 ## TODO
-* Encoder hole too small
-* Jack holes too high
+* Add -12V Label
