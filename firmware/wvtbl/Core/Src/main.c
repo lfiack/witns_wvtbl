@@ -291,38 +291,60 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  led_pwm_init(&h_led_red);
-  led_pwm_init(&h_led_green);
-  led_pwm_init(&h_led_blue);
-
   encoder_init(&h_encoder);
+  
+  if (0 != led_pwm_init(&h_led_red))
+  {
+    Error_Handler();
+  }
+  if (0 != led_pwm_init(&h_led_green))
+  {
+    Error_Handler();
+  }
+  if (0 != led_pwm_init(&h_led_blue))
+  {
+    Error_Handler();
+  }
 
   if (0 != analog_init(&h_analog))
   {
     Error_Handler();
   }
   
-  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
-	HAL_TIM_Base_Start_IT(&htim7);
+//  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
+	if (HAL_OK != HAL_TIM_Base_Start_IT(&htim7))
+  {
+    Error_Handler();
+  }
 
   while (1)
   {
-		if (counter_SW != old_counter_SW)
-		{
-			old_counter_SW = counter_SW;
-			printf("SW=%ld\r\n", counter_SW);
-		}
+#ifdef DEBUG_ENCODER
+    static int32_t value = 0;
 
-    for (int it = 0 ; it < 4 ; it++)
+    if (h_encoder.value != value)
     {
-      int diff = potentiometers[it] - old_potentiometers[it];
-      if ((diff > 10) || (diff < -10))
-      {
-        old_potentiometers[it] = potentiometers[it];
-
-        printf("Pot[%d] = %u\r\n", it, potentiometers[it]);
-      }
+      value = h_encoder.value;
+      printf("Encoder = %ld\r\n", value);
     }
+#endif // DEBUG_ENCODER
+
+		// if (counter_SW != old_counter_SW)
+		// {
+		// 	old_counter_SW = counter_SW;
+		// 	printf("SW=%ld\r\n", counter_SW);
+		// }
+
+    // for (int it = 0 ; it < 4 ; it++)
+    // {
+    //   int diff = potentiometers[it] - old_potentiometers[it];
+    //   if ((diff > 10) || (diff < -10))
+    //   {
+    //     old_potentiometers[it] = potentiometers[it];
+
+    //     printf("Pot[%d] = %u\r\n", it, potentiometers[it]);
+    //   }
+    // }
     // If the interrupt flag is available
     // Get ADC values from params (pots) and inputs (Audio/CV) <- maybe in interruption
     // dsp_process() : reads params and inputs, generates outputs and lights
