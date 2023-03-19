@@ -32,13 +32,19 @@
 #include "drv/led_pwm.h"
 #include "drv/encoder.h"
 #include "drv/analog.h"
+#include "drv/eeprom.h"
 
 #include "dsp/dsp.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef struct eeprom_save_struct 
+{
+  int32_t encoder;
+  float truc;
+  float machin;
+} eeprom_save_t;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -92,6 +98,8 @@ h_dsp_t h_dsp = {
   .sample_frequency = 47995.48277809147f
 };
 
+static eeprom_save_t eeprom_save;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -120,7 +128,10 @@ void read_switch(void)
 	{
 		if (HAL_GPIO_ReadPin(ENCODER_SWITCH_GPIO_Port, ENCODER_SWITCH_Pin) == GPIO_PIN_SET)
 		{
-      encoder_reset(&h_encoder);
+      eeprom_save.encoder = encoder_value(&h_encoder);
+      printf("Saving pitch %d...\r\n", eeprom_save.encoder);
+      eeprom_write((void*)&eeprom_save, sizeof(eeprom_save_t));
+      printf("Pitch saved...\r\n");
 
 			state_SW = 1;
 		}
@@ -134,6 +145,7 @@ void read_switch(void)
 	}
 }
 
+// Called every 1 ms
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
   if (ADC1 == hadc->Instance)
@@ -145,13 +157,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 
     uint16_t x_param = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_X_PARAM_INDEX);
     uint16_t y_param = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_Y_PARAM_INDEX);
+    uint16_t pitch = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_PITCH_INPUT_INDEX);  // C0 = 2V = 2376LSB ; C2 = 4V = 2814LSB
     int32_t encoder = encoder_value(&h_encoder);
 
     h_dsp.params[PITCH_PARAM] = encoder;
 
     h_dsp.params[X_PARAM] = x_param;
     h_dsp.params[Y_PARAM] = x_param;
-    h_dsp.inputs[PITCH_INPUT] = 0;
+    h_dsp.inputs[PITCH_INPUT] = pitch;
     h_dsp.inputs[X_INPUT] = 0;
     h_dsp.inputs[Y_INPUT] = 0;
 
@@ -227,17 +240,7 @@ int main(void)
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
   printf("===== WVTBL =====\r\n");
-  // We want to be able to calibrate the v/oct input
-  // If encoder is pressed, enter calibration mode
-  // Blink one color (eg. blue) while calibrating, say 1V (C2)
-  // Waits second encoder press
-  // We might light green LED for 1 or 2 seconds to send feedback to the user
-  // Blink another color (eg. red) while calibrating, say 3V (C4)
 
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   encoder_init(&h_encoder);
   dsp_init(&h_dsp);
   
@@ -258,6 +261,22 @@ int main(void)
   {
     Error_Handler();
   }
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+
+  // TODO
+  // We want to be able to calibrate the v/oct input
+  // If encoder is pressed, enter calibration mode
+  // Blink one color (eg. blue) while calibrating, say 1V (C2)
+  // Waits second encoder press
+  // We might light green LED for 1 or 2 seconds to send feedback to the user
+  // Blink another color (eg. red) while calibrating, say 3V (C4)
+
+  eeprom_read((void*)&eeprom_save, sizeof(eeprom_save_t));
+  printf("Encoder value: %d\r\n", eeprom_save.encoder);
+  encoder_set(&h_encoder, eeprom_save.encoder);
 
   while (1)
   {
@@ -271,7 +290,13 @@ int main(void)
     }
 #endif // DEBUG_ENCODER
 
-    printf("Still alive...\r\n");
+    float voct_sub = 2376.f;
+    float voct_div = (2814.f - 2376.f) / 2.f;
+    float voct = ((float)(h_dsp.inputs[PITCH_INPUT]) - voct_sub) / voct_div;
+    float blblbl = (voct - (int)voct) * 1000;
+
+    printf("ADC = %ld, V/oct = %d.%03d\r\n", h_dsp.inputs[PITCH_INPUT], (int)voct, (int)blblbl);
+
     HAL_Delay(1000);
     // if (h_dsp.params[PITCH_PARAM] != pitch)
     // {

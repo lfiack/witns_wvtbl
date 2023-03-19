@@ -71,7 +71,8 @@ Core/Src/dma.c \
 dsp/dsp.c \
 drv/led_pwm.c \
 drv/encoder.c \
-drv/analog.c
+drv/analog.c \
+drv/eeprom.c
 
 # ASM sources
 ASM_SOURCES =  \

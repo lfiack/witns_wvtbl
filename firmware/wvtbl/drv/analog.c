@@ -20,7 +20,7 @@ int8_t analog_init(h_analog_t * h_analog)
 
 	if (HAL_OK != HAL_TIM_Base_Start(h_analog->dac_timer_handle))
     {
-        Error_Handler();
+        return -1;
     }
 
     if (HAL_OK != HAL_TIM_Base_Start(h_analog->adc_timer_handle))

@@ -29,6 +29,11 @@ void dsp_process(h_dsp_t * h_dsp, uint32_t * dac_buffer, int32_t dac_buffer_size
 {
     // Compute pitch voltage
     float pitch = (float)(h_dsp->params[PITCH_PARAM])/12.f;
+    // C0 = 2V = 2376LSB ; C2 = 4V = 2814LSB
+    float voct_sub = 2376.f;                    // Compensate the offset
+    float voct_div = (2814.f - 2376.f) / 2.f;   // Compensate the gain
+    float voct = ((float)(h_dsp->inputs[PITCH_INPUT]) - voct_sub) / voct_div;
+    pitch += voct;
     // TODO add h_dsp->inputs[PITCH_INPUT]
     // TODO clamp
 
