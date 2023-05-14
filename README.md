@@ -11,6 +11,7 @@ The firmware is developped with VSCode and the `stm32-for-vscode` plugin. There 
 
 ## Where to download wavetables ?
 * [Free Serum Wavetables](https://www.antidoteaudio.com/free-serum-wavetables)
+* [Adventurekid](https://www.adventurekid.se/akrt/waveforms/)
 
 ## TODO
 * Add -12V Label
