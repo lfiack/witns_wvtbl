@@ -13,6 +13,9 @@
  */
 #define FREQ_C4 523.251f
 
+#define PARAM_MIN 0
+#define PARAM_MAX 4095
+
 /**
  * @brief Enumeration for identifying different parameters in the DSP structure. 
  * X and Y parameters are modified by the potentiometers and the pitch is modified by the encoder
@@ -50,6 +53,10 @@ typedef struct h_dsp_struct
 
     float phase; /**< The phase of the digital signal. */
 } h_dsp_t;
+
+float fclamp (float voltage, float min, float max);
+
+int32_t clamp (int32_t voltage, int32_t min, int32_t max);
 
 /**
  * @brief Initializes the DSP structure.

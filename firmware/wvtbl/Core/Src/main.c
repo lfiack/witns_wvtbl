@@ -155,22 +155,30 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     encoder_process(&h_encoder);
 		read_switch();
 
-    uint16_t x_param = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_X_PARAM_INDEX);
-    uint16_t y_param = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_Y_PARAM_INDEX);
-    uint16_t pitch = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_PITCH_INPUT_INDEX);  // C0 = 2V = 2376LSB ; C2 = 4V = 2814LSB
+    int32_t x_param = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_X_PARAM_INDEX);
+    int32_t y_param = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_Y_PARAM_INDEX);
+    int32_t pitch = 4095 - analog_get_adc(&h_analog, ANALOG_ADC_PITCH_INPUT_INDEX);  // C0 = 2V = 2376LSB ; C2 = 4V = 2814LSB
     int32_t encoder = encoder_value(&h_encoder);
+    int32_t x_input = 2047 - analog_get_adc(&h_analog, ANALOG_ADC_X_INPUT_INDEX);
+    int32_t y_input = 2047 - analog_get_adc(&h_analog, ANALOG_ADC_Y_INPUT_INDEX);
+    int32_t x_attv = 2047 - analog_get_adc(&h_analog, ANALOG_ADC_X_ATTV_INDEX);
+    int32_t y_attv = 2047 - analog_get_adc(&h_analog, ANALOG_ADC_Y_ATTV_INDEX);
 
     h_dsp.params[PITCH_PARAM] = encoder;
 
     h_dsp.params[X_PARAM] = x_param;
-    h_dsp.params[Y_PARAM] = x_param;
+    h_dsp.params[Y_PARAM] = y_param;
     h_dsp.inputs[PITCH_INPUT] = pitch;
-    h_dsp.inputs[X_INPUT] = 0;
-    h_dsp.inputs[Y_INPUT] = 0;
+    h_dsp.inputs[X_INPUT] = (x_input * x_attv) / 1024;
+    h_dsp.inputs[Y_INPUT] = (y_input * y_attv) / 1024;
 
-    led_pwm_set_brightness(&h_led_red, x_param >> 4);
-    led_pwm_set_brightness(&h_led_green, encoder + 127);
-    led_pwm_set_brightness(&h_led_blue, y_param >> 4);
+    int32_t x_bright = clamp((h_dsp.inputs[X_INPUT] + h_dsp.params[X_PARAM]), 0, 4095);
+    int32_t y_bright = clamp((h_dsp.inputs[Y_INPUT] + h_dsp.params[Y_PARAM]), 0, 4095);
+
+    led_pwm_set_brightness(&h_led_red, x_bright >> 4);
+//    led_pwm_set_brightness(&h_led_green, encoder + 127);
+    led_pwm_set_brightness(&h_led_green, 0);
+    led_pwm_set_brightness(&h_led_blue, y_bright >> 4);
 
     HAL_GPIO_WritePin(LED_DEBUG_GPIO_Port, LED_DEBUG_Pin, GPIO_PIN_RESET);
   }
@@ -290,8 +298,11 @@ int main(void)
     }
 #endif // DEBUG_ENCODER
 
-    float voct_sub = 2376.f;
-    float voct_div = (2814.f - 2376.f) / 2.f;
+  // 2V : ADC=2380
+  // 4V : ADC=2818
+
+    float voct_sub = 2380.f;
+    float voct_div = (2818.f - 2380.f) / 2.f;
     float voct = ((float)(h_dsp.inputs[PITCH_INPUT]) - voct_sub) / voct_div;
     float blblbl = (voct - (int)voct) * 1000;
 
